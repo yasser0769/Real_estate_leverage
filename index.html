@@ -280,20 +280,24 @@
 
   <script>
     const formatter = new Intl.NumberFormat('en-US');
+    const state = { years: 5, inputs: {}, lastEdited: { down: 'percent', rent: 'percent' } };
+
     const inputsConfig = [
-      { key: 'PurchasePrice', label: 'سعر الشراء', value: 1000000 },
-      { key: 'DownPayment', label: 'الدفعة المقدمة', value: 250000 },
-      { key: 'AnnualRentYear1', label: 'صافي الإيجار (السنة الأولى)', value: 70000 },
-      { key: 'RentGrowthRate', label: 'نمو الإيجار السنوي', value: 0.02, step: 0.01 },
+      { key: 'PurchasePrice', label: 'سعر الشراء', value: 400000 },
+      { key: 'DownPaymentPercent', label: 'نسبة الدفعة المقدمة (%)', value: 30 },
+      { key: 'DownPaymentAmount', label: 'قيمة الدفعة المقدمة', value: '' },
+      { key: 'RentYieldPercent', label: 'صافي الإيجار (%)', value: 7 },
+      { key: 'AnnualRentYear1', label: 'صافي الإيجار (السنة الأولى)', value: '' },
+      { key: 'RentGrowthPercent', label: 'نمو الإيجار السنوي (%)', value: 2 },
       { key: 'AnnualLoanPayment', label: 'القسط السنوي للقرض', value: 62152 },
+      { key: 'LoanInterestPercent', label: 'نسبة فائدة القرض السنوية (%)', value: 3.88, step: 0.01 },
+      { key: 'LoanTermYears', label: 'مدة القرض (سنوات)', value: 25 },
       { key: 'SalePriceAtEnd_5', label: 'سعر البيع عند نهاية 5 سنوات', value: 1082443 },
       { key: 'SalePriceAtEnd_10', label: 'سعر البيع عند نهاية 10 سنوات', value: 1195100 },
-      { key: 'LoanPayoffAtEnd_5', label: 'المتبقي على القرض في نهاية 5 سنوات', value: 563202 },
-      { key: 'LoanPayoffAtEnd_10', label: 'المتبقي على القرض في نهاية 10 سنوات', value: 364808 },
-      { key: 'DiscountRate', label: 'معدل الخصم', value: 0.10, step: 0.01 },
+      { key: 'DiscountRatePercent', label: 'معدل الخصم (%)', value: 10 },
+      { key: 'LoanPayoffAtEnd_5', label: 'المتبقي على القرض في نهاية 5 سنوات', value: '', readonly: true },
+      { key: 'LoanPayoffAtEnd_10', label: 'المتبقي على القرض في نهاية 10 سنوات', value: '', readonly: true },
     ];
-
-    const state = { years: 5, inputs: {} };
 
     function buildInputs() {
       const grid = document.getElementById('inputs-grid');
@@ -307,16 +311,19 @@
         input.type = 'number';
         input.id = cfg.key;
         input.name = cfg.key;
-        input.value = cfg.value;
-        input.step = cfg.step || '1';
+        if (cfg.value !== '') input.value = cfg.value;
+        if (cfg.step) input.step = cfg.step;
+        if (cfg.readonly) input.readOnly = true;
         input.addEventListener('input', () => {
-          state.inputs[cfg.key] = parseFloat(input.value) || 0;
-          render();
+          if (cfg.key === 'DownPaymentAmount') state.lastEdited.down = 'amount';
+          if (cfg.key === 'DownPaymentPercent') state.lastEdited.down = 'percent';
+          if (cfg.key === 'AnnualRentYear1') state.lastEdited.rent = 'amount';
+          if (cfg.key === 'RentYieldPercent') state.lastEdited.rent = 'percent';
+          recalcAndRender();
         });
         wrap.appendChild(label);
         wrap.appendChild(input);
         grid.appendChild(wrap);
-        state.inputs[cfg.key] = cfg.value;
       });
     }
 
@@ -325,6 +332,19 @@
       const formatted = formatter.format(Math.round(abs));
       if (value < 0) return `(${formatted})`;
       return formatted;
+    }
+
+    function parseNumber(val) {
+      if (val === undefined || val === null) return 0;
+      const cleaned = String(val).replace(/[,\\s]/g, '');
+      const num = parseFloat(cleaned);
+      return isNaN(num) ? 0 : num;
+    }
+
+    function setInputValue(id, value) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.value = Number.isFinite(value) ? value : '';
     }
 
     function computeRents(years, rent1, growth) {
@@ -370,12 +390,60 @@
       return (low + high) / 2;
     }
 
-    function render() {
+    function recalcAndRender() {
+      const price = parseNumber(document.getElementById('PurchasePrice').value);
+      const downPercentRaw = parseNumber(document.getElementById('DownPaymentPercent').value);
+      const downAmountRaw = parseNumber(document.getElementById('DownPaymentAmount').value);
+      const rentYieldRaw = parseNumber(document.getElementById('RentYieldPercent').value);
+      const rentYear1Raw = parseNumber(document.getElementById('AnnualRentYear1').value);
+      const growthPercent = parseNumber(document.getElementById('RentGrowthPercent').value);
+      const annualLoanPayment = parseNumber(document.getElementById('AnnualLoanPayment').value);
+      const loanInterestPercent = parseNumber(document.getElementById('LoanInterestPercent').value);
+      const loanTermYears = parseNumber(document.getElementById('LoanTermYears').value);
+      const sale5 = parseNumber(document.getElementById('SalePriceAtEnd_5').value);
+      const sale10 = parseNumber(document.getElementById('SalePriceAtEnd_10').value);
+      const discountPercent = parseNumber(document.getElementById('DiscountRatePercent').value);
+
+      let downPercent = downPercentRaw;
+      let downAmount = downAmountRaw;
+      if (state.lastEdited.down === 'amount') {
+        downPercent = price ? (downAmount / price) * 100 : 0;
+      } else {
+        downAmount = price * (downPercent / 100);
+      }
+      setInputValue('DownPaymentPercent', +downPercent.toFixed(2));
+      setInputValue('DownPaymentAmount', Math.round(downAmount));
+
+      let rentYieldPercent = rentYieldRaw;
+      let rentYear1 = rentYear1Raw;
+      if (state.lastEdited.rent === 'amount') {
+        rentYieldPercent = price ? (rentYear1 / price) * 100 : 0;
+      } else {
+        rentYear1 = price * (rentYieldPercent / 100);
+      }
+      setInputValue('RentYieldPercent', +rentYieldPercent.toFixed(2));
+      setInputValue('AnnualRentYear1', Math.round(rentYear1));
+
+      const principal = Math.max(0, price - downAmount);
+      const r = loanInterestPercent / 100;
+      const payoffCalc = (K) => {
+        if (r > 0) {
+          const pow = Math.pow(1 + r, K);
+          const bal = principal * pow - annualLoanPayment * ((pow - 1) / r);
+          return Math.max(0, bal);
+        }
+        return Math.max(0, principal - annualLoanPayment * K);
+      };
+      const payoff5 = payoffCalc(5);
+      const payoff10 = payoffCalc(10);
+      setInputValue('LoanPayoffAtEnd_5', Math.round(payoff5));
+      setInputValue('LoanPayoffAtEnd_10', Math.round(payoff10));
+
       const N = state.years;
       document.getElementById('table-title').textContent = `جدول التدفقات النقدية - ${N} سنوات`;
-      const sale = N === 5 ? state.inputs.SalePriceAtEnd_5 : state.inputs.SalePriceAtEnd_10;
-      const payoff = N === 5 ? state.inputs.LoanPayoffAtEnd_5 : state.inputs.LoanPayoffAtEnd_10;
-      const rents = computeRents(N, state.inputs.AnnualRentYear1, state.inputs.RentGrowthRate);
+      const sale = N === 5 ? sale5 : sale10;
+      const payoff = N === 5 ? payoff5 : payoff10;
+      const rents = computeRents(N, rentYear1, growthPercent / 100);
 
       const rows = [];
       const cfWithout = [];
@@ -384,16 +452,17 @@
       for (let year = 0; year <= N; year++) {
         if (year === 0) {
           rows.push({
-            year: '00', rent: null,
-            without: -state.inputs.PurchasePrice,
-            with: -state.inputs.DownPayment,
+            year: '00',
+            rent: null,
+            without: -price,
+            with: -downAmount,
             note: 'التدفقات سالبة - تعبر عن المبالغ المدفوعة (المستثمرة)'
           });
-          cfWithout.push(-state.inputs.PurchasePrice);
-          cfWith.push(-state.inputs.DownPayment);
+          cfWithout.push(-price);
+          cfWith.push(-downAmount);
         } else if (year < N) {
           const rent = rents[year];
-          const withVal = rent - state.inputs.AnnualLoanPayment;
+          const withVal = rent - annualLoanPayment;
           rows.push({ year: year.toString().padStart(2, '0'), rent, without: rent, with: withVal, note: '' });
           cfWithout.push(rent);
           cfWith.push(withVal);
@@ -409,7 +478,7 @@
 
       const tbody = document.getElementById('table-body');
       tbody.innerHTML = '';
-      rows.forEach((row, idx) => {
+      rows.forEach(row => {
         const tr = document.createElement('tr');
 
         const yearCell = document.createElement('th');
@@ -439,8 +508,9 @@
         tbody.appendChild(tr);
       });
 
-      const npvUnlev = npv(state.inputs.DiscountRate, cfWithout);
-      const npvLev = npv(state.inputs.DiscountRate, cfWith);
+      const discountRate = discountPercent / 100;
+      const npvUnlev = npv(discountRate, cfWithout);
+      const npvLev = npv(discountRate, cfWith);
       const irrUnlev = irr(cfWithout);
       const irrLev = irr(cfWith);
 
@@ -466,14 +536,14 @@
             b.classList.toggle('active', b === btn);
             b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
           });
-          render();
+          recalcAndRender();
         });
       });
     }
 
     buildInputs();
     initToggle();
-    render();
+    recalcAndRender();
   </script>
 </body>
 </html>
