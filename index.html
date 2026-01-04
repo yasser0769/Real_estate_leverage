@@ -285,7 +285,8 @@
       { key: 'RentYieldPercent', label: 'صافي الإيجار (%)', value: 7 },
       { key: 'AnnualRentYear1', label: 'صافي الإيجار (السنة الأولى)', value: '' },
       { key: 'RentGrowthPercent', label: 'نمو الإيجار السنوي (%)', value: 2 },
-      { key: 'AnnualLoanPayment', label: 'القسط السنوي للقرض', value: 62152 },
+      { key: 'MonthlyLoanPayment', label: 'القسط الشهري للقرض', value: '', readonly: true },
+      { key: 'AnnualLoanPayment', label: 'القسط السنوي للقرض', value: '', readonly: true },
       { key: 'LoanInterestPercent', label: 'نسبة فائدة القرض السنوية (%)', value: 3.88, step: 0.01 },
       { key: 'LoanTermYears', label: 'مدة القرض (سنوات)', value: 25 },
       { key: 'SalePriceAtEnd_5', label: 'سعر البيع عند نهاية 5 سنوات', value: 1082443 },
@@ -401,7 +402,6 @@
       const rentYieldRaw = Math.min(100, Math.max(0, parseNumber(document.getElementById('RentYieldPercent').value)));
       const rentYear1Raw = Math.max(0, parseNumber(document.getElementById('AnnualRentYear1').value));
       const growthPercent = Math.min(100, Math.max(0, parseNumber(document.getElementById('RentGrowthPercent').value)));
-      const annualLoanPayment = Math.max(0, parseNumber(document.getElementById('AnnualLoanPayment').value));
       const loanInterestPercent = Math.min(100, Math.max(0, parseNumber(document.getElementById('LoanInterestPercent').value)));
       const loanTermYears = Math.max(0, parseNumber(document.getElementById('LoanTermYears').value));
       const sale5 = parseNumber(document.getElementById('SalePriceAtEnd_5').value);
@@ -429,16 +429,36 @@
       setInputValue('AnnualRentYear1', Math.round(rentYear1));
 
       const principal = Math.max(0, price - downAmount);
-      const r = loanInterestPercent / 100;
+      const apr = loanInterestPercent / 100;
+      const monthlyRate = loanTermYears > 0 ? apr / 12 : 0;
+      const totalMonths = Math.max(0, Math.round(loanTermYears * 12));
+      let monthlyPMT = 0;
+      if (principal > 0 && totalMonths > 0) {
+        if (monthlyRate > 0) {
+          monthlyPMT = principal * monthlyRate / (1 - Math.pow(1 + monthlyRate, -totalMonths));
+        } else {
+          monthlyPMT = principal / totalMonths;
+        }
+      }
+      const annualLoanPayment = monthlyPMT * 12;
+      setInputValue('MonthlyLoanPayment', Math.round(monthlyPMT));
+      setInputValue('AnnualLoanPayment', Math.round(annualLoanPayment));
+
+      const balanceAfterMonths = (m) => {
+        if (principal <= 0 || totalMonths === 0) return 0;
+        let bal;
+        if (monthlyRate > 0) {
+          const pow = Math.pow(1 + monthlyRate, m);
+          bal = principal * pow - monthlyPMT * ((pow - 1) / monthlyRate);
+        } else {
+          bal = principal - monthlyPMT * m;
+        }
+        if (Math.abs(bal) < 0.01) bal = 0;
+        return Math.max(0, bal);
+      };
       const payoffBalances = {};
-      let balance = principal;
-      const maxYears = 10;
-      for (let year = 1; year <= maxYears; year++) {
-        const paymentDue = balance > 0 && year <= loanTermYears ? annualLoanPayment : 0;
-        const interest = balance > 0 ? (r > 0 ? balance * r : 0) : 0;
-        balance = balance + interest - paymentDue;
-        if (balance < 0) balance = 0;
-        payoffBalances[year] = balance;
+      for (let y = 1; y <= 10; y++) {
+        payoffBalances[y] = balanceAfterMonths(y * 12);
       }
       const payoff5 = payoffBalances[5] || 0;
       const payoff10 = payoffBalances[10] || 0;
@@ -468,8 +488,11 @@
         } else {
           const rent = rents[year];
           const balancePrev = payoffBalances[year - 1] || 0;
-          const paymentDue = balancePrev > 0 && year <= loanTermYears ? annualLoanPayment : 0;
-          const baseCash = rent - paymentDue;
+          const monthsStart = (year - 1) * 12;
+          const monthsRemaining = Math.max(0, totalMonths - monthsStart);
+          const monthsThisYear = Math.min(12, monthsRemaining);
+          const annualDue = monthlyPMT * monthsThisYear;
+          const baseCash = rent - annualDue;
           if (year < N) {
             rows.push({ year: year.toString().padStart(2, '0'), rent, without: rent, with: baseCash });
             cfWithout.push(rent);
