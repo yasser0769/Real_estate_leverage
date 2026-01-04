@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <title>جدول التدفقات النقدية</title>
+  <style>
+    :root {
+      --bg: #f3f3f5;
+      --card: #fff;
+      --border: #e4e4e7;
+      --header: #f5eee4;
+      --orange: #d97706;
+      --neg: #c0392b;
+      --text: #1f2933;
+      --muted: #6b7280;
+      --shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+    }
+    * { box-sizing: border-box; font-family: 'IBM Plex Sans Arabic', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif !important; }
+    html, body, input, button, select, textarea, table, th, td, label, small, span, div, p, h1, h2, h3, h4, h5, h6 {
+      font-family: 'IBM Plex Sans Arabic', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif !important;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      font-family: 'IBM Plex Sans Arabic', system-ui, -apple-system, sans-serif;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .title-bar {
+      background: #e9e9ec;
+      color: var(--orange);
+      text-align: center;
+      padding: 14px 12px;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: 0.2px;
+    }
+    .page {
+      max-width: 1100px;
+      margin: 18px auto 40px;
+      padding: 0 14px 24px;
+    }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      padding: 14px 16px 6px;
+      margin-bottom: 14px;
+    }
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #374151;
+    }
+    .inputs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px 12px;
+    }
+    .input-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 13px;
+      color: #374151;
+    }
+    .input-field label { font-weight: 600; }
+    .input-field input {
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      background: #fdfdfd;
+    }
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .toggle {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.02);
+      background: #f7f7f8;
+    }
+    .toggle button {
+      border: none;
+      background: transparent;
+      padding: 9px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      color: #4b5563;
+      font-weight: 600;
+      min-width: 96px;
+    }
+    .toggle button.active {
+      background: var(--orange);
+      color: white;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      color: #374151;
+      font-weight: 700;
+    }
+    .table-wrap {
+      position: relative;
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: linear-gradient(to right, rgba(243,243,245,0.95), rgba(243,243,245,0.95)),
+                  linear-gradient(to left, rgba(243,243,245,0.95), rgba(243,243,245,0.95));
+    }
+    .table-wrap::before, .table-wrap::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      width: 28px;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .table-wrap::before {
+      right: 0;
+      background: linear-gradient(to left, rgba(243,243,245,0.95), rgba(243,243,245,0));
+    }
+    .table-wrap::after {
+      left: 0;
+      background: linear-gradient(to right, rgba(243,243,245,0.95), rgba(243,243,245,0));
+    }
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      min-width: 760px;
+      background: white;
+    }
+    caption { text-align: right; margin-bottom: 8px; font-weight: 600; color: #374151; }
+    thead th {
+      background: var(--header);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 12px;
+      font-weight: 700;
+      font-size: 13px;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      text-align: center;
+      white-space: nowrap;
+    }
+    thead tr:nth-child(2) th { top: 44px; z-index: 6; }
+    tbody th, tbody td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #f0f0f2;
+      font-size: 13px;
+      text-align: center;
+      background: white;
+    }
+    tbody tr:last-child th, tbody tr:last-child td { border-bottom: none; }
+    tbody th {
+      position: sticky;
+      left: 0;
+      background: #fafafa;
+      z-index: 4;
+      text-align: center;
+      font-weight: 700;
+    }
+    thead th:first-child { left: 0; z-index: 7; }
+    thead tr:nth-child(2) th:first-child { left: 0; z-index: 8; }
+    .neg { color: var(--neg); font-weight: 700; }
+    .muted { color: var(--muted); }
+    .summary {
+      margin-top: 14px;
+      background: #f2f8f3;
+      border: 1px solid #d7eadc;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+    }
+    .summary-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.1fr;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .value-box {
+      background: white;
+      border: 1px solid #e1e8e3;
+      padding: 8px 10px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+    }
+    @media (max-width: 640px) {
+      .summary-row { grid-template-columns: 1fr; }
+      .summary-row .label { order: -1; text-align: right; }
+      .controls-row { flex-direction: column; align-items: stretch; }
+      .toggle { width: 100%; }
+      .toggle button { flex: 1; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="title-bar">جدول التدفقات النقدية</div>
+  <div class="page">
+    <div class="panel">
+      <h3>المدخلات</h3>
+      <div class="inputs-grid" id="inputs-grid"></div>
+    </div>
+
+    <div class="controls-row">
+      <div class="toggle" role="group" aria-label="تبديل مدة الاستثمار">
+        <button type="button" data-years="5" aria-pressed="true" class="active">5 سنوات</button>
+        <button type="button" data-years="10" aria-pressed="false">10 سنوات</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 id="table-title">جدول التدفقات النقدية - 5 سنوات</h2>
+      <div class="table-wrap">
+        <table aria-label="جدول التدفقات النقدية">
+          <thead>
+            <tr>
+              <th scope="col">السنة</th>
+              <th scope="col">صافي الإيجار</th>
+              <th scope="col" colspan="2">التدفقات النقدية</th>
+            </tr>
+            <tr>
+              <th scope="col"></th>
+              <th scope="col"></th>
+              <th scope="col">بدون رافعة مالية</th>
+              <th scope="col">مع رافعة مالية</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+      <div class="summary">
+        <div class="summary-row">
+          <div class="value-box" id="npv-leveraged">0</div>
+          <div class="value-box" id="npv-unleveraged">0</div>
+          <div class="label">صافي القيمة الحالية (NPV)</div>
+        </div>
+        <div class="summary-row">
+          <div class="value-box" id="irr-leveraged">—</div>
+          <div class="value-box" id="irr-unleveraged">—</div>
+          <div class="label">العائد الداخلي على الاستثمار (IRR)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const formatter = new Intl.NumberFormat('en-US');
+    const state = { years: 5, lastEdited: { down: 'percent', rent: 'percent' }, debounce: null };
+
+    const inputsConfig = [
+      { key: 'PurchasePrice', label: 'سعر الشراء', value: 400000 },
+      { key: 'DownPaymentPercent', label: 'نسبة الدفعة المقدمة (%)', value: 30 },
+      { key: 'DownPaymentAmount', label: 'قيمة الدفعة المقدمة', value: '' },
+      { key: 'RentYieldPercent', label: 'صافي الإيجار (%)', value: 7 },
+      { key: 'AnnualRentYear1', label: 'صافي الإيجار (السنة الأولى)', value: '' },
+      { key: 'RentGrowthPercent', label: 'نمو الإيجار السنوي (%)', value: 2 },
+      { key: 'propertyGrowthPct', label: 'نمو قيمة العقار السنوي (%)', value: 4 },
+      { key: 'MonthlyLoanPayment', label: 'القسط الشهري للقرض', value: '', readonly: true },
+      { key: 'AnnualLoanPayment', label: 'القسط السنوي للقرض', value: '', readonly: true },
+      { key: 'LoanInterestPercent', label: 'نسبة فائدة القرض السنوية (%)', value: 3.88, step: 0.01 },
+      { key: 'LoanTermYears', label: 'مدة القرض (سنوات)', value: 25 },
+      { key: 'saleCostPct', label: 'تكاليف البيع (%)', value: 2.5, step: 0.1 },
+      { key: 'saleTaxPct', label: 'ضريبة التصرفات عند البيع (%)', value: 0, step: 0.1 },
+      { key: 'SalePriceAtEnd_5', label: 'سعر البيع عند نهاية 5 سنوات', value: '', readonly: true },
+      { key: 'SalePriceAtEnd_10', label: 'سعر البيع عند نهاية 10 سنوات', value: '', readonly: true },
+      { key: 'DiscountRatePercent', label: 'معدل الخصم (%)', value: 10 },
+      { key: 'LoanPayoffAtEnd_5', label: 'المتبقي على القرض في نهاية 5 سنوات', value: '', readonly: true },
+      { key: 'LoanPayoffAtEnd_10', label: 'المتبقي على القرض في نهاية 10 سنوات', value: '', readonly: true },
+    ];
+
+    function buildInputs() {
+      const grid = document.getElementById('inputs-grid');
+      inputsConfig.forEach(cfg => {
+        const wrap = document.createElement('div');
+        wrap.className = 'input-field';
+        const label = document.createElement('label');
+        label.textContent = cfg.label;
+        label.setAttribute('for', cfg.key);
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.id = cfg.key;
+        input.name = cfg.key;
+        if (cfg.value !== '') input.value = cfg.value;
+        if (cfg.step) input.step = cfg.step;
+        if (cfg.readonly) input.readOnly = true;
+        input.addEventListener('input', () => {
+          if (cfg.key === 'DownPaymentAmount') state.lastEdited.down = 'amount';
+          if (cfg.key === 'DownPaymentPercent') state.lastEdited.down = 'percent';
+          if (cfg.key === 'AnnualRentYear1') state.lastEdited.rent = 'amount';
+          if (cfg.key === 'RentYieldPercent') state.lastEdited.rent = 'percent';
+          scheduleRecalc();
+        });
+        wrap.appendChild(label);
+        wrap.appendChild(input);
+        grid.appendChild(wrap);
+        if (cfg.key === 'SalePriceAtEnd_10') {
+          const helper = document.createElement('small');
+          helper.className = 'muted';
+          helper.style.marginTop = '-2px';
+          helper.textContent = 'يتم احتساب سعر البيع تلقائيًا من نمو قيمة العقار وتكاليف البيع';
+          grid.appendChild(helper);
+        }
+      });
+    }
+
+    function formatCurrency(value) {
+      const abs = Math.abs(value);
+      const formatted = formatter.format(Math.round(abs));
+      if (value < 0) return `(${formatted})`;
+      return formatted;
+    }
+
+    function parseNumber(val) {
+      if (val === undefined || val === null) return 0;
+      const mapDigits = { '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9' };
+      const cleaned = String(val)
+        .replace(/[,\\s]/g, '')
+        .replace(/[٠-٩]/g, d => mapDigits[d] || d);
+      const num = parseFloat(cleaned);
+      return isNaN(num) ? 0 : num;
+    }
+
+    function setInputValue(id, value) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.value = Number.isFinite(value) ? value : '';
+    }
+
+    function computeRents(years, rent1, growth) {
+      const rents = Array(years + 1).fill(null);
+      let rent = Math.round(rent1);
+      rents[1] = rent;
+      for (let i = 2; i <= years; i++) {
+        rent = Math.round(rent * (1 + growth));
+        rents[i] = rent;
+      }
+      return rents;
+    }
+
+    function scheduleRecalc() {
+      if (state.debounce) cancelAnimationFrame(state.debounce);
+      state.debounce = requestAnimationFrame(() => recalcAndRender());
+    }
+
+    function npv(rate, flows) {
+      return flows.reduce((sum, cf, t) => sum + cf / Math.pow(1 + rate, t), 0);
+    }
+
+    function irr(flows) {
+      let low = -0.999;
+      let high = 5.0;
+      let npvLow = npv(low, flows);
+      let npvHigh = npv(high, flows);
+      let iter = 0;
+      while (npvLow * npvHigh > 0 && high < 100) {
+        high *= 1.5;
+        npvHigh = npv(high, flows);
+        iter++;
+        if (iter > 50) break;
+      }
+      if (npvLow * npvHigh > 0) return null;
+      for (let i = 0; i < 200; i++) {
+        const mid = (low + high) / 2;
+        const val = npv(mid, flows);
+        if (Math.abs(val) < 1e-6) return mid;
+        if (val * npvLow < 0) {
+          high = mid;
+          npvHigh = val;
+        } else {
+          low = mid;
+          npvLow = val;
+        }
+      }
+      return (low + high) / 2;
+    }
+
+    function recalcAndRender() {
+      const price = Math.max(0, parseNumber(document.getElementById('PurchasePrice').value));
+      const downPercentRaw = Math.min(100, Math.max(0, parseNumber(document.getElementById('DownPaymentPercent').value)));
+      const downAmountRaw = Math.max(0, parseNumber(document.getElementById('DownPaymentAmount').value));
+      const rentYieldRaw = Math.min(100, Math.max(0, parseNumber(document.getElementById('RentYieldPercent').value)));
+      const rentYear1Raw = Math.max(0, parseNumber(document.getElementById('AnnualRentYear1').value));
+      const growthPercent = Math.min(100, Math.max(0, parseNumber(document.getElementById('RentGrowthPercent').value)));
+      const loanInterestPercent = Math.min(100, Math.max(0, parseNumber(document.getElementById('LoanInterestPercent').value)));
+      const loanTermYears = Math.max(0, parseNumber(document.getElementById('LoanTermYears').value));
+      const propertyGrowth = Math.min(100, Math.max(0, parseNumber(document.getElementById('propertyGrowthPct').value))) / 100;
+      const saleCost = Math.min(100, Math.max(0, parseNumber(document.getElementById('saleCostPct').value))) / 100;
+      const saleTax = Math.min(100, Math.max(0, parseNumber(document.getElementById('saleTaxPct').value))) / 100;
+      const discountPercent = Math.min(100, Math.max(0, parseNumber(document.getElementById('DiscountRatePercent').value)));
+
+      let downPercent = downPercentRaw;
+      let downAmount = downAmountRaw;
+      if (state.lastEdited.down === 'amount') {
+        downPercent = price ? (downAmount / price) * 100 : 0;
+      } else {
+        downAmount = price * (downPercent / 100);
+      }
+      setInputValue('DownPaymentPercent', +downPercent.toFixed(2));
+      setInputValue('DownPaymentAmount', Math.round(downAmount));
+
+      let rentYieldPercent = rentYieldRaw;
+      let rentYear1 = rentYear1Raw;
+      if (state.lastEdited.rent === 'amount') {
+        rentYieldPercent = price ? (rentYear1 / price) * 100 : 0;
+      } else {
+        rentYear1 = price * (rentYieldPercent / 100);
+      }
+      setInputValue('RentYieldPercent', +rentYieldPercent.toFixed(2));
+      setInputValue('AnnualRentYear1', Math.round(rentYear1));
+
+      const principal = Math.max(0, price - downAmount);
+      const apr = loanInterestPercent / 100;
+      const monthlyRate = loanTermYears > 0 ? apr / 12 : 0;
+      const totalMonths = Math.max(0, Math.round(loanTermYears * 12));
+      let monthlyPMT = 0;
+      if (principal > 0 && totalMonths > 0) {
+        if (monthlyRate > 0) {
+          monthlyPMT = principal * monthlyRate / (1 - Math.pow(1 + monthlyRate, -totalMonths));
+        } else {
+          monthlyPMT = principal / totalMonths;
+        }
+      }
+      const annualLoanPayment = monthlyPMT * 12;
+      setInputValue('MonthlyLoanPayment', Math.round(monthlyPMT));
+      setInputValue('AnnualLoanPayment', Math.round(annualLoanPayment));
+
+      const balanceAfterMonths = (m) => {
+        if (principal <= 0 || totalMonths === 0) return 0;
+        let bal;
+        if (monthlyRate > 0) {
+          const pow = Math.pow(1 + monthlyRate, m);
+          bal = principal * pow - monthlyPMT * ((pow - 1) / monthlyRate);
+        } else {
+          bal = principal - monthlyPMT * m;
+        }
+        if (Math.abs(bal) < 0.01) bal = 0;
+        return Math.max(0, bal);
+      };
+      const payoffBalances = {};
+      for (let y = 1; y <= 10; y++) {
+        payoffBalances[y] = balanceAfterMonths(y * 12);
+      }
+      const payoff5 = payoffBalances[5] || 0;
+      const payoff10 = payoffBalances[10] || 0;
+      setInputValue('LoanPayoffAtEnd_5', Math.round(payoff5));
+      setInputValue('LoanPayoffAtEnd_10', Math.round(payoff10));
+
+      const grossSale5 = price * Math.pow(1 + propertyGrowth, 5);
+      const grossSale10 = price * Math.pow(1 + propertyGrowth, 10);
+      const netSale5 = Math.max(0, grossSale5 * (1 - saleCost - saleTax));
+      const netSale10 = Math.max(0, grossSale10 * (1 - saleCost - saleTax));
+      const sale5 = Math.round(netSale5);
+      const sale10 = Math.round(netSale10);
+      setInputValue('SalePriceAtEnd_5', sale5);
+      setInputValue('SalePriceAtEnd_10', sale10);
+
+      const N = state.years;
+      document.getElementById('table-title').textContent = `جدول التدفقات النقدية - ${N} سنوات`;
+      const sale = N === 5 ? sale5 : sale10;
+      const payoff = N === 5 ? payoff5 : payoff10;
+      const rents = computeRents(N, rentYear1, growthPercent / 100);
+
+      const rows = [];
+      const cfWithout = [];
+      const cfWith = [];
+
+      for (let year = 0; year <= N; year++) {
+        if (year === 0) {
+          rows.push({
+            year: '00',
+            rent: null,
+            without: -price,
+            with: -downAmount
+          });
+          cfWithout.push(-price);
+          cfWith.push(-downAmount);
+        } else {
+          const rent = rents[year];
+          const balancePrev = payoffBalances[year - 1] || 0;
+          const monthsStart = (year - 1) * 12;
+          const monthsRemaining = Math.max(0, totalMonths - monthsStart);
+          const monthsThisYear = Math.min(12, monthsRemaining);
+          const annualDue = monthlyPMT * monthsThisYear;
+          const baseCash = rent - annualDue;
+          if (year < N) {
+            rows.push({ year: year.toString().padStart(2, '0'), rent, without: rent, with: baseCash });
+            cfWithout.push(rent);
+            cfWith.push(baseCash);
+          } else {
+            const withoutVal = rent + sale;
+            const withVal = baseCash + (sale - payoff);
+            rows.push({ year: year.toString().padStart(2, '0'), rent, without: withoutVal, with: withVal });
+            cfWithout.push(withoutVal);
+            cfWith.push(withVal);
+          }
+        }
+      }
+
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = '';
+      rows.forEach(row => {
+        const tr = document.createElement('tr');
+
+        const yearCell = document.createElement('th');
+        yearCell.scope = 'row';
+        yearCell.textContent = row.year;
+        tr.appendChild(yearCell);
+
+        const rentCell = document.createElement('td');
+        rentCell.textContent = row.rent ? formatCurrency(row.rent) : '';
+        tr.appendChild(rentCell);
+
+        const withoutCell = document.createElement('td');
+        withoutCell.textContent = formatCurrency(row.without);
+        if (row.without < 0) withoutCell.classList.add('neg');
+        tr.appendChild(withoutCell);
+
+        const withCell = document.createElement('td');
+        withCell.textContent = formatCurrency(row.with);
+        if (row.with < 0) withCell.classList.add('neg');
+        tr.appendChild(withCell);
+
+        tbody.appendChild(tr);
+      });
+
+      const discountRate = discountPercent / 100;
+      const npvUnlev = npv(discountRate, cfWithout);
+      const npvLev = npv(discountRate, cfWith);
+      const irrUnlev = irr(cfWithout);
+      const irrLev = irr(cfWith);
+
+      const npvUn = document.getElementById('npv-unleveraged');
+      const npvLv = document.getElementById('npv-leveraged');
+      npvUn.textContent = formatCurrency(npvUnlev);
+      npvLv.textContent = formatCurrency(npvLev);
+      npvUn.classList.toggle('neg', npvUnlev < 0);
+      npvLv.classList.toggle('neg', npvLev < 0);
+
+      const irrUnEl = document.getElementById('irr-unleveraged');
+      const irrLvEl = document.getElementById('irr-leveraged');
+      irrUnEl.textContent = irrUnlev !== null ? `${Math.round(irrUnlev * 100)}%` : '—';
+      irrLvEl.textContent = irrLev !== null ? `${Math.round(irrLev * 100)}%` : '—';
+    }
+
+    function initToggle() {
+      document.querySelectorAll('.toggle button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const years = Number(btn.dataset.years);
+          state.years = years;
+          document.querySelectorAll('.toggle button').forEach(b => {
+            b.classList.toggle('active', b === btn);
+            b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
+          });
+          scheduleRecalc();
+        });
+      });
+    }
+
+    buildInputs();
+    initToggle();
+    scheduleRecalc();
+  </script>
+</body>
+</html>
