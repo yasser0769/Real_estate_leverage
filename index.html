@@ -285,12 +285,15 @@
       { key: 'RentYieldPercent', label: 'صافي الإيجار (%)', value: 7 },
       { key: 'AnnualRentYear1', label: 'صافي الإيجار (السنة الأولى)', value: '' },
       { key: 'RentGrowthPercent', label: 'نمو الإيجار السنوي (%)', value: 2 },
+      { key: 'propertyGrowthPct', label: 'نمو قيمة العقار السنوي (%)', value: 4 },
       { key: 'MonthlyLoanPayment', label: 'القسط الشهري للقرض', value: '', readonly: true },
       { key: 'AnnualLoanPayment', label: 'القسط السنوي للقرض', value: '', readonly: true },
       { key: 'LoanInterestPercent', label: 'نسبة فائدة القرض السنوية (%)', value: 3.88, step: 0.01 },
       { key: 'LoanTermYears', label: 'مدة القرض (سنوات)', value: 25 },
-      { key: 'SalePriceAtEnd_5', label: 'سعر البيع عند نهاية 5 سنوات', value: 1082443 },
-      { key: 'SalePriceAtEnd_10', label: 'سعر البيع عند نهاية 10 سنوات', value: 1195100 },
+      { key: 'saleCostPct', label: 'تكاليف البيع (%)', value: 2.5, step: 0.1 },
+      { key: 'saleTaxPct', label: 'ضريبة التصرفات عند البيع (%)', value: 0, step: 0.1 },
+      { key: 'SalePriceAtEnd_5', label: 'سعر البيع عند نهاية 5 سنوات', value: '', readonly: true },
+      { key: 'SalePriceAtEnd_10', label: 'سعر البيع عند نهاية 10 سنوات', value: '', readonly: true },
       { key: 'DiscountRatePercent', label: 'معدل الخصم (%)', value: 10 },
       { key: 'LoanPayoffAtEnd_5', label: 'المتبقي على القرض في نهاية 5 سنوات', value: '', readonly: true },
       { key: 'LoanPayoffAtEnd_10', label: 'المتبقي على القرض في نهاية 10 سنوات', value: '', readonly: true },
@@ -321,6 +324,13 @@
         wrap.appendChild(label);
         wrap.appendChild(input);
         grid.appendChild(wrap);
+        if (cfg.key === 'SalePriceAtEnd_10') {
+          const helper = document.createElement('small');
+          helper.className = 'muted';
+          helper.style.marginTop = '-2px';
+          helper.textContent = 'يتم احتساب سعر البيع تلقائيًا من نمو قيمة العقار وتكاليف البيع';
+          grid.appendChild(helper);
+        }
       });
     }
 
@@ -404,8 +414,9 @@
       const growthPercent = Math.min(100, Math.max(0, parseNumber(document.getElementById('RentGrowthPercent').value)));
       const loanInterestPercent = Math.min(100, Math.max(0, parseNumber(document.getElementById('LoanInterestPercent').value)));
       const loanTermYears = Math.max(0, parseNumber(document.getElementById('LoanTermYears').value));
-      const sale5 = parseNumber(document.getElementById('SalePriceAtEnd_5').value);
-      const sale10 = parseNumber(document.getElementById('SalePriceAtEnd_10').value);
+      const propertyGrowth = Math.min(100, Math.max(0, parseNumber(document.getElementById('propertyGrowthPct').value))) / 100;
+      const saleCost = Math.min(100, Math.max(0, parseNumber(document.getElementById('saleCostPct').value))) / 100;
+      const saleTax = Math.min(100, Math.max(0, parseNumber(document.getElementById('saleTaxPct').value))) / 100;
       const discountPercent = Math.min(100, Math.max(0, parseNumber(document.getElementById('DiscountRatePercent').value)));
 
       let downPercent = downPercentRaw;
@@ -464,6 +475,15 @@
       const payoff10 = payoffBalances[10] || 0;
       setInputValue('LoanPayoffAtEnd_5', Math.round(payoff5));
       setInputValue('LoanPayoffAtEnd_10', Math.round(payoff10));
+
+      const grossSale5 = price * Math.pow(1 + propertyGrowth, 5);
+      const grossSale10 = price * Math.pow(1 + propertyGrowth, 10);
+      const netSale5 = Math.max(0, grossSale5 * (1 - saleCost - saleTax));
+      const netSale10 = Math.max(0, grossSale10 * (1 - saleCost - saleTax));
+      const sale5 = Math.round(netSale5);
+      const sale10 = Math.round(netSale10);
+      setInputValue('SalePriceAtEnd_5', sale5);
+      setInputValue('SalePriceAtEnd_10', sale10);
 
       const N = state.years;
       document.getElementById('table-title').textContent = `جدول التدفقات النقدية - ${N} سنوات`;
