@@ -299,6 +299,11 @@
           <div class="value-box" id="irr-unleveraged">—</div>
           <div class="value-box" id="irr-leveraged">—</div>
         </div>
+        <div class="summary-row">
+          <div class="label">الربح الإجمالي (غير مخصوم)</div>
+          <div class="value-box" id="profit-unleveraged">0</div>
+          <div class="value-box" id="profit-leveraged">0</div>
+        </div>
       </div>
     </div>
   </div>
@@ -523,6 +528,8 @@
       const rows = [];
       const cfWithout = [];
       const cfWith = [];
+      let totalRent = 0;
+      let totalLeveragedBase = 0;
 
       for (let year = 0; year <= N; year++) {
         if (year === 0) {
@@ -542,6 +549,8 @@
           const monthsThisYear = Math.min(12, monthsRemaining);
           const annualDue = monthlyPMT * monthsThisYear;
           const baseCash = rent - annualDue;
+          totalRent += rent;
+          totalLeveragedBase += baseCash;
           if (year < N) {
             rows.push({ year: year.toString().padStart(2, '0'), rent, without: rent, with: baseCash });
             cfWithout.push(rent);
@@ -552,6 +561,7 @@
             rows.push({ year: year.toString().padStart(2, '0'), rent, without: withoutVal, with: withVal });
             cfWithout.push(withoutVal);
             cfWith.push(withVal);
+            totalLeveragedBase += (sale - payoff);
           }
         }
       }
@@ -600,6 +610,15 @@
       const irrLvEl = document.getElementById('irr-leveraged');
       irrUnEl.textContent = irrUnlev !== null ? `${Math.round(irrUnlev * 100)}%` : '—';
       irrLvEl.textContent = irrLev !== null ? `${Math.round(irrLev * 100)}%` : '—';
+
+      const profitUnlev = totalRent + sale - price;
+      const profitLev = totalLeveragedBase - downAmount;
+      const profitUnEl = document.getElementById('profit-unleveraged');
+      const profitLvEl = document.getElementById('profit-leveraged');
+      profitUnEl.textContent = formatCurrency(profitUnlev);
+      profitLvEl.textContent = formatCurrency(profitLev);
+      profitUnEl.classList.toggle('neg', profitUnlev < 0);
+      profitLvEl.classList.toggle('neg', profitLev < 0);
     }
 
     function initToggle() {
